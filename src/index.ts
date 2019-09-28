@@ -1,5 +1,6 @@
 import { JupyterFrontEndPlugin, JupyterFrontEnd } from '@jupyterlab/application';
 import { IMainMenu } from "@jupyterlab/mainmenu";
+import { GcpMenu } from "./gcp";
 
 const gcloudAuthExt: JupyterFrontEndPlugin<void> = {
   id: 'gcloud_auth',
@@ -15,12 +16,16 @@ const gcloudAuthExt: JupyterFrontEndPlugin<void> = {
         console.log(`Executed ${commandID}`);
       }
     });
+    const commands = app.commands;
+    const gcpMenu = new GcpMenu({ commands });
+
     // TODO: it should be in it's own group
-    mainMenu.fileMenu.addGroup([
+    mainMenu.addMenu(gcpMenu.menu, { rank: 10 })
+    gcpMenu.addGroup([
       {
         command: commandID,
       }
-    ], 40 /* rank */);
+    ], 0 /* rank */);
   }
 }
 
