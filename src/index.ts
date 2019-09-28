@@ -1,5 +1,3 @@
-import '../style/index.css'
-
 import { JupyterFrontEndPlugin, JupyterFrontEnd } from '@jupyterlab/application';
 import { IMainMenu } from "@jupyterlab/mainmenu";
 
