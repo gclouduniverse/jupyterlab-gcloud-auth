@@ -16,7 +16,7 @@ requires = [line.strip() for line in open('requirements.txt').readlines() if not
 cmdclass = create_cmdclass(data_files_spec=data_files_spec)
 
 setup_dict = dict(
-    name='jupyterlab-gcloud-auth',
+    name='jupyterlab_gcloud_auth',
     description='Plugin that allows to run gclout auth directly from the Notebooks.',
     packages=find_packages(),
     cmdclass=cmdclass,

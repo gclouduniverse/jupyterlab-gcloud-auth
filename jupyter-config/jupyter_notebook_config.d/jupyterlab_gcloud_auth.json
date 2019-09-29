@@ -1,7 +1,7 @@
 {
   "NotebookApp": {
     "nbserver_extensions": {
-      "jupyterlab-gcloud-auth": true
+      "jupyterlab_gcloud_auth": true
     }
   }
 }
