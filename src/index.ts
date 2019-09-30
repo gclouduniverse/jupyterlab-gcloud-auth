@@ -14,12 +14,12 @@ const gcloudAuthExt: JupyterFrontEndPlugin<void> = {
     console.log('gcloud auth extension is activated!');
     const commandID = 'gcloud-auth-application-default-login';
     app.commands.addCommand(commandID, {
-      label: 'gcloud auth application-default login',
+      label: "gcloud auth application-default login",
       execute: () => {
         const settings = ServerConnection.makeSettings();
         const fullUrl = URLExt.join(settings.baseUrl, "gcloud-auth");
         const fullRequest = {
-          method: 'POST'
+          method: 'GET'
         };
         ServerConnection.makeRequest(fullUrl, fullRequest, settings).then(response => {
           response.text().then(function processUrl(authUrl: string) {
@@ -27,11 +27,26 @@ const gcloudAuthExt: JupyterFrontEndPlugin<void> = {
               title: "Auth",
               body: new AuthForm(authUrl),
               buttons: [
+                  Dialog.cancelButton(),
                   Dialog.okButton()
                 ]
             });
-            dialog.launch();
-          })
+            const result = dialog.launch();
+            result.then(result => {
+              if (typeof result.value != 'undefined' && result.value) {
+                const authCode = result.value;
+                const finalizeAuthRequest = {
+                  method: "POST",
+                  body: JSON.stringify(
+                    {
+                      "auth_code": authCode
+                    }
+                  )
+                };
+                ServerConnection.makeRequest(fullUrl, finalizeAuthRequest, settings);
+              }
+            });
+          });
         });
       }
     });
@@ -60,10 +75,25 @@ class AuthForm extends Widget {
       const node = document.createElement("div");
       const br = document.createElement("br");
       const authLinkText = document.createElement("a");
-      authLinkText.textContent = authLink;
+      const authCodeAskText = document.createElement("p");
+      const authCodeInputText = document.createElement("input");
+
+      authCodeInputText.setAttribute("type", "text");
+      authCodeInputText.setAttribute("id", "authCodeInputText");
+      authCodeAskText.textContent = "auth code:";
+
+      authLinkText.textContent = "Please authorzied here";
+      authLinkText.href = authLink;
+      authLinkText.target = '_blank';
       node.appendChild(authLinkText);
       node.appendChild(br);
+      node.appendChild(authCodeAskText);
+      node.appendChild(authCodeInputText);
       return node;
+  }
+
+  getValue(): string {
+    return (<HTMLInputElement>this.node.querySelector('#authCodeInputText')).value;
   }
 }
 

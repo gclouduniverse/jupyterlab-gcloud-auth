@@ -42,7 +42,7 @@ class GcloudAuthHelper(object):
             "client_id": _GCLOUD_CLIENT_ID,
             "client_secret": _GCLOUD_CLIENT_SECRET,
             "refresh_token": result_dict["refresh_token"],
-            "type": "authorization_code"
+            "type": "authorized_user"
         }
         file_path = expanduser(_DEFAULT_CREDENTIALS_FILE_PATH)
         with open(file_path, "w") as fp:
