@@ -38,6 +38,6 @@ setup_dict = dict(
 )
 
 setuptools.setup(
-    version="0.1.0",
+    version="0.3.0",
     **setup_dict
 )
