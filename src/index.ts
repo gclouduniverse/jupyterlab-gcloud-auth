@@ -141,6 +141,7 @@ class AuthForm extends Widget {
       authLinkText.textContent = "Please authorzied here";
       authLinkText.href = authLink;
       authLinkText.target = '_blank';
+      authLinkText.style.color = '#106ba3';
       node.appendChild(authLinkText);
       node.appendChild(br);
       node.appendChild(authCodeAskText);
