@@ -8,7 +8,7 @@ from setupbase import (
 
 data_files_spec = [
     ('etc/jupyter/jupyter_notebook_config.d',
-     'jupyter-config/jupyter_notebook_config.d', 'jupyterlab-gcloud-auth.json'),
+     'jupyter-config/jupyter_notebook_config.d', 'jupyterlab_gcloud_auth.json'),
 ]
 
 requires = [line.strip() for line in open('requirements.txt').readlines() if not line.startswith("#")]
