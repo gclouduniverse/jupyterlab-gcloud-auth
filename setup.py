@@ -3,7 +3,7 @@ Setup module for the share proxy extension
 """
 import setuptools
 from setupbase import (
-    create_cmdclass, ensure_python, find_packages
+    create_cmdclass, ensure_python, find_packages, __version__
     )
 
 data_files_spec = [
@@ -38,6 +38,6 @@ setup_dict = dict(
 )
 
 setuptools.setup(
-    version="0.1.0",
+    version=__version__,
     **setup_dict
 )
