@@ -1,7 +1,7 @@
 import json
 import requests
 
-from os.path import expanduser
+import os.path
 
 _DEFAULT_CREDENTIALS_FILE_PATH = "~/.config/gcloud/application_default_credentials.json"
 
@@ -27,6 +27,10 @@ class GcloudAuthHelper(object):
 
     def get_link(self):
         return _AUTH_URL
+
+    def signed_in(self):
+        file_path = self._generate_auth_file_path()
+        return os.path.exists(file_path)
     
     def finish_authentification(self, auth_code):
         payload = {
@@ -44,7 +48,9 @@ class GcloudAuthHelper(object):
             "refresh_token": result_dict["refresh_token"],
             "type": "authorized_user"
         }
-        file_path = expanduser(_DEFAULT_CREDENTIALS_FILE_PATH)
+        file_path = self._generate_auth_file_path()
         with open(file_path, "w") as fp:
             json.dump(auth_file_content, fp)
     
+    def _generate_auth_file_path(self):
+        return os.path.expanduser(_DEFAULT_CREDENTIALS_FILE_PATH)

@@ -21,8 +21,11 @@ class GcpAuthHandler(APIHandler):
 
     @gen.coroutine
     def get(self):
-        link = self.gcloud_auth_helper.get_link()
-        return self.finish(link)
+        data = {
+            "auth_url": self.gcloud_auth_helper.get_link(),
+            "signed_in": self.gcloud_auth_helper.signed_in()
+        }
+        return self.finish(data)
 
 
 def _jupyter_server_extension_paths():
