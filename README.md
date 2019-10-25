@@ -27,3 +27,13 @@ sudo service jupyter restart
 ```
 
 and refresh the browser tab.
+
+## Installation For Development (Remote From Local Machine)
+
+```bash
+# INSTANCE_NAME - name of either AI Platform Notebook instance or Cloud AI Deep Learning VM
+git clone https://github.com/gclouduniverse/jupyterlab-gcloud-auth.git
+cd jupyterlab-gcloud-auth
+./deploy.sh INSTANCE_NAME
+```
+
