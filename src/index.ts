@@ -138,7 +138,9 @@ class AuthForm extends Widget {
       authCodeInputText.setAttribute("id", "authCodeInputText");
       authCodeAskText.textContent = "auth code:";
 
-      authLinkText.textContent = "Please authorzied here";
+      authLinkText.textContent = ("Click this link to login to gcloud in a new tab.\n" +
+          "Once you're logged in, the tab will show you an authorization code to " + 
+          "copy and paste into the box below.");
       authLinkText.href = authLink;
       authLinkText.target = '_blank';
       authLinkText.style.color = '#106ba3';
