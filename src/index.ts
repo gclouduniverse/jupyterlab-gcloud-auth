@@ -32,7 +32,7 @@ function signIn(forced: Boolean) {
       if (alreadySigned) {
         if (!forced) {
           const alreadySignedDialog = new Dialog({
-            title: "Auth",
+            title: "GCP Credentials",
             body: new AlreadySignedDialog(),
             buttons: [
               Dialog.okButton()
@@ -42,27 +42,37 @@ function signIn(forced: Boolean) {
         }
         return;
       }
-      const dialog = new Dialog({
-        title: "Auth",
-        body: new AuthForm(authUrl),
+      const getCodeDialog = new Dialog({
+        title: "Please authorize your GCP credentials",
+        body: new GetCodeDialog(),
         buttons: [
-            Dialog.cancelButton(),
-            Dialog.okButton()
-          ]
+          Dialog.cancelButton(),
+          submitButton({ label: "Get Code" }),
+        ]
       });
-      const result = dialog.launch();
-      result.then(result => {
-        if (typeof result.value != 'undefined' && result.value) {
-          const authCode = result.value;
-          const finalizeAuthRequest = {
-            method: "POST",
-            body: JSON.stringify(
-              {
-                "auth_code": authCode
-              }
-            )
-          };
-          ServerConnection.makeRequest(fullUrl, finalizeAuthRequest, settings);
+      const getCodeResult = getCodeDialog.launch();
+      getCodeResult.then(result => {
+        if (typeof result.value !== 'undefined' && result.value !== null) {
+          openInNewTab(authUrl);
+          const submitCodeDialog = new Dialog({
+            title: "Complete GCP Authorization",
+            body: new SubmitCodeDialog(),
+            buttons: [
+              Dialog.cancelButton(),
+              submitButton({ label: "Authorize" })
+            ]
+          });
+          const authResult = submitCodeDialog.launch();
+          authResult.then(result => {
+            if (typeof result.value !== 'undefined' && result.value) {
+              const authCode = result.value;
+              const finalizeAuthRequest = {
+                method: "POST",
+                body: JSON.stringify({ "auth_code": authCode })
+              };
+              ServerConnection.makeRequest(fullUrl, finalizeAuthRequest, settings);
+            }
+          });
         }
       });
     });
@@ -111,42 +121,56 @@ class AlreadySignedDialog extends Widget {
 
   private static createFormNode(): HTMLElement {
       const node = document.createElement("div");
-      const authLinkText = document.createElement("a");
+      const authText = document.createElement("a");
 
-      authLinkText.textContent = "Already Signed In";
-      node.appendChild(authLinkText);
+      authText.textContent = "You're already signed in";
+      node.appendChild(authText);
       return node;
   }
 }
 
-class AuthForm extends Widget {
+class GetCodeDialog extends Widget {
+  constructor() {
+    super({
+      node: GetCodeDialog.createDialogNode()
+    });
+  }
 
-  constructor(authLink: string) {
+  private static createDialogNode(): HTMLElement {
+    const node = document.createElement("div");
+    const authText = document.createElement("p");
+
+    authText.textContent = 'Clicking "Get Code" will take you to a new page with an authentication code that you can paste here to complete the process.';
+    authText.style.marginBottom = "16px";
+
+    node.appendChild(authText);
+    return node;
+  }
+  getValue(): string {
+    return '';
+  }
+}
+
+class SubmitCodeDialog extends Widget {
+
+  constructor() {
       super({
-          node: AuthForm.createFormNode(authLink)
+          node: SubmitCodeDialog.createFormNode()
       });
   }
 
-  private static createFormNode(authLink: string): HTMLElement {
+  private static createFormNode(): HTMLElement {
       const node = document.createElement("div");
-      const br = document.createElement("br");
-      const authLinkText = document.createElement("a");
-      const authCodeAskText = document.createElement("p");
+      const authText = document.createElement("p");
       const authCodeInputText = document.createElement("input");
 
+      authText.textContent = 'Please paste your copied Google Authorization code into the form field below';
       authCodeInputText.setAttribute("type", "text");
       authCodeInputText.setAttribute("id", "authCodeInputText");
-      authCodeAskText.textContent = "auth code:";
 
-      authLinkText.textContent = ("Click this link to login to gcloud in a new tab.\n" +
-          "Once you're logged in, the tab will show you an authorization code to " + 
-          "copy and paste into the box below.");
-      authLinkText.href = authLink;
-      authLinkText.target = '_blank';
-      authLinkText.style.color = '#106ba3';
-      node.appendChild(authLinkText);
-      node.appendChild(br);
-      node.appendChild(authCodeAskText);
+      authCodeInputText.style.margin = '16px 0';
+
+      node.appendChild(authText);
       node.appendChild(authCodeInputText);
       return node;
   }
@@ -154,6 +178,16 @@ class AuthForm extends Widget {
   getValue(): string {
     return (<HTMLInputElement>this.node.querySelector('#authCodeInputText')).value;
   }
+}
+
+function openInNewTab(url: string) {
+  var win = window.open(url, '_blank');
+  win.focus();
+}
+
+function submitButton(options: Partial<Dialog.IButton> = {}): Readonly<Dialog.IButton> {
+  options.accept = true;
+  return Dialog.createButton(options);
 }
 
 export default gcloudAuthExt;
