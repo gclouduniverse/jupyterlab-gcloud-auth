@@ -45,7 +45,7 @@ else:
     def list2cmdline(cmd_list):
         return ' '.join(map(pipes.quote, cmd_list))
 
-__version__ = '0.2.3'
+__version__ = '0.2.4'
 
 # ---------------------------------------------------------------------------
 # Top Level Variables

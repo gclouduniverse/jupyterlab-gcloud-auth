@@ -1,6 +1,6 @@
 {
   "name": "jupyterlab-gcloud-auth",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Plugin that allows to run gclout auth directly from the Notebooks.",
   "keywords": [
     "jupyter",
