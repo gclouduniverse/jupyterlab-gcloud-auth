@@ -11,13 +11,13 @@ This extension includes both a notebook server extension and a lab extension. In
 To install the server extension, run the following in your terminal:
 
 ```bash
-sudo pip3 install jupyterlab-gcloud-auth
+pip3 install jupyterlab-gcloud-auth
 ```
 
 To install the lab extension, run:
 
 ```bash
-sudo jupyter labextension install jupyterlab-gcloud-auth
+jupyter labextension install jupyterlab-gcloud-auth
 ```
 
 Don't forget to restart jupyter:
