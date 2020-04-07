@@ -7,9 +7,9 @@
     "jupyterlab",
     "jupyterlab-extension"
   ],
-  "homepage": "https://github.com/gclouduniverse/nova-jupyterlab-plugin",
+  "homepage": "https://github.com/gclouduniverse/jupyterlab-gcloud-auth",
   "bugs": {
-    "url": "https://github.com/gclouduniverse/nova-jupyterlab-plugin/issues"
+    "url": "https://github.com/gclouduniverse/jupyterlab-gcloud-auth/issues"
   },
   "license": "BSD-3-Clause",
   "author": "Abdalla Abdulmonem, Viacheslav Kovalevskyi",
@@ -22,7 +22,7 @@
   "types": "lib/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/gclouduniverse/nova-jupyterlab-plugin.git"
+    "url": "https://github.com/gclouduniverse/jupyterlab-gcloud-auth.git"
   },
   "scripts": {
     "build": "tsc",

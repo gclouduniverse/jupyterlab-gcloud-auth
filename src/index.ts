@@ -1,193 +1,279 @@
-import { JupyterFrontEndPlugin, JupyterFrontEnd } from '@jupyterlab/application';
-import { IMainMenu } from "@jupyterlab/mainmenu";
-import { GcpMenu } from "./gcp";
-import { URLExt } from '@jupyterlab/coreutils';
-import { ServerConnection } from '@jupyterlab/services';
-import { Widget } from "@phosphor/widgets";
-import { Dialog } from "@jupyterlab/apputils";
+import {
+    JupyterFrontEndPlugin,
+    JupyterFrontEnd
+}
+from '@jupyterlab/application';
+import {
+    IMainMenu
+}
+from "@jupyterlab/mainmenu";
+import {
+    GcpMenu
+}
+from "./gcp";
+import {
+    URLExt
+}
+from '@jupyterlab/coreutils';
+import {
+    ServerConnection
+}
+from '@jupyterlab/services';
+import {
+    Widget
+}
+from "@phosphor/widgets";
+import {
+    Dialog
+}
+from "@jupyterlab/apputils";
 
 const FORCE_SIGN_IN_FEILD_KEY: string = "force_signin"
 
-function getUrlParams(search: string): {[key: string]: string} {
-  let hashes: string[] = search.slice(search.indexOf('?') + 1).split('&');
-  let result: {[key: string]: string} = {}
-  return hashes.reduce((params: {[key: string]: string}, hash: string) => {
-      let [key, val] = hash.split('=')
-      params[key] = decodeURIComponent(val);
-      return params;
-  }, result);
+function getUrlParams(search: string): {
+    [key: string]: string
+} {
+    let hashes: string[] = search.slice(search.indexOf('?') + 1).split('&');
+    let result: {
+        [key: string]: string
+    } = {}
+    return hashes.reduce((params: {
+            [key: string]: string
+        }, hash: string) => {
+        let[key, val] = hash.split('=')
+            params[key] = decodeURIComponent(val);
+        return params;
+    }, result);
 }
 
 function signIn(forced: Boolean) {
-  const settings = ServerConnection.makeSettings();
-  const fullUrl = URLExt.join(settings.baseUrl, "gcloud-auth");
-  const fullRequest = {
-    method: 'GET'
-  };
-  ServerConnection.makeRequest(fullUrl, fullRequest, settings).then(response => {
-    response.text().then(function processUrl(jsonResult: string) {
-      const dataFromServer: {[key: string]: string} = JSON.parse(jsonResult);
-      const authUrl: string = dataFromServer["auth_url"];
-      const alreadySigned: Boolean = !!dataFromServer["signed_in"];
-      if (alreadySigned) {
-        if (!forced) {
-          const alreadySignedDialog = new Dialog({
-            title: "GCP Credentials",
-            body: new AlreadySignedDialog(),
-            buttons: [
-              Dialog.okButton()
-            ]
-          });
-          alreadySignedDialog.launch();
-        }
-        return;
-      }
-      const getCodeDialog = new Dialog({
-        title: "Please authorize your GCP credentials",
-        body: new GetCodeDialog(),
-        buttons: [
-          Dialog.cancelButton(),
-          submitButton({ label: "Get Code" }),
-        ]
-      });
-      const getCodeResult = getCodeDialog.launch();
-      getCodeResult.then(result => {
-        if (typeof result.value !== 'undefined' && result.value !== null) {
-          openInNewTab(authUrl);
-          const submitCodeDialog = new Dialog({
-            title: "Complete GCP Authorization",
-            body: new SubmitCodeDialog(),
-            buttons: [
-              Dialog.cancelButton(),
-              submitButton({ label: "Authorize" })
-            ]
-          });
-          const authResult = submitCodeDialog.launch();
-          authResult.then(result => {
-            if (typeof result.value !== 'undefined' && result.value) {
-              const authCode = result.value;
-              const finalizeAuthRequest = {
-                method: "POST",
-                body: JSON.stringify({ "auth_code": authCode })
-              };
-              ServerConnection.makeRequest(fullUrl, finalizeAuthRequest, settings);
+    const settings = ServerConnection.makeSettings();
+    const fullUrl = URLExt.join(settings.baseUrl, "gcloud-auth");
+    const fullRequest = {
+        method: 'GET'
+    };
+    ServerConnection.makeRequest(fullUrl, fullRequest, settings).then(response => {
+        response.text().then(function processUrl(jsonResult: string) {
+            const dataFromServer: {
+                [key: string]: string
+            } = JSON.parse(jsonResult);
+            const authUrl: string = dataFromServer["auth_url"];
+            const alreadySigned: Boolean = !!dataFromServer["signed_in"];
+            if (alreadySigned) {
+                if (!forced) {
+                    signOut();
+                }
+                return;
             }
-          });
+            const getCodeDialog = new Dialog({
+                title: "Please authorize your GCP credentials",
+                body: new GetCodeDialog(),
+                buttons: [
+                    Dialog.cancelButton(),
+                    submitButton({
+                        label: "Get Code"
+                    }),
+                ]
+            });
+            const getCodeResult = getCodeDialog.launch();
+            getCodeResult.then(result => {
+                if (typeof result.value !== 'undefined' && result.value !== null) {
+                    openInNewTab(authUrl);
+                    const submitCodeDialog = new Dialog({
+                        title: "Complete GCP Authorization",
+                        body: new SubmitCodeDialog(),
+                        buttons: [
+                            Dialog.cancelButton(),
+                            submitButton({
+                                label: "Authorize"
+                            })
+                        ]
+                    });
+                    const authResult = submitCodeDialog.launch();
+                    authResult.then(result => {
+                        if (typeof result.value !== 'undefined' && result.value) {
+                            const authCode = result.value;
+                            const finalizeAuthRequest = {
+                                method: "POST",
+                                body: JSON.stringify({
+                                    "auth_code": authCode
+                                })
+                            };
+                            ServerConnection.makeRequest(fullUrl, finalizeAuthRequest, settings);
+                        }
+                    });
+                }
+            });
+        });
+    });
+}
+
+function signOut() {
+    const settings = ServerConnection.makeSettings();
+    const fullUrl = URLExt.join(settings.baseUrl, "gcloud-auth");
+    const signOutDialog = new Dialog({
+        title: "Sign out",
+        body: new SignOutDialog(),
+        buttons: [
+            Dialog.cancelButton(),
+            submitButton({
+                label: "Yes"
+            })
+        ]
+    });
+    const signOutResult = signOutDialog.launch();
+    signOutResult.then(result => {
+        if (result.button.label == 'Yes') {
+            let signOutProcessing = {
+                method: 'POST',
+                body: JSON.stringify({
+                    "signout": true
+                })
+            };
+            ServerConnection.makeRequest(fullUrl, signOutProcessing, settings).then(response => {
+                response.text().then(function processText(links: string) {
+                    const successDialog = new Dialog({
+                        title: 'Success',
+                        body: new SuccessDialog(),
+                        buttons: [
+                            Dialog.okButton()
+                        ]
+                    });
+                    successDialog.launch();
+                })
+            });
         }
-      });
     });
-  });
 }
 
-const gcloudAuthExt: JupyterFrontEndPlugin<void> = {
-  id: 'gcloud_auth',
-  autoStart: true,
-  requires: [IMainMenu],
-  activate: (app: JupyterFrontEnd, mainMenu: IMainMenu) => {
-    const commandID = 'gcloud-auth-application-default-login';
-    app.commands.addCommand(commandID, {
-      label: "gcloud auth application-default login",
-      execute: () => {
-        signIn(false);
-      }
-    });
-    const commands = app.commands;
-    const gcpMenu = new GcpMenu({ commands });
+const gcloudAuthExt: JupyterFrontEndPlugin < void >  = {
+    id: 'gcloud_auth',
+    autoStart: true,
+    requires: [IMainMenu],
+    activate: (app: JupyterFrontEnd, mainMenu: IMainMenu) => {
+        const commandID = 'gcloud-auth-application-default-login';
+        app.commands.addCommand(commandID, {
+            label: "gcloud auth application-default login/logout",
+            execute: () => {
+                signIn(false);
+            }
+        });
+        const commands = app.commands;
+        const gcpMenu = new GcpMenu({
+            commands
+        });
 
-    // TODO: it should be in it's own group
-    mainMenu.addMenu(gcpMenu.menu, { rank: 10 })
-    gcpMenu.addGroup([
-      {
-        command: commandID,
-      }
-    ], 0 /* rank */);
+        // TODO: it should be in it's own group
+        mainMenu.addMenu(gcpMenu.menu, {
+            rank: 10
+        })
+        gcpMenu.addGroup([{
+                    command: commandID,
+                }
+            ], 0 /* rank */);
 
-    console.log('gcloud auth extension is activated!');
-    console.log(getUrlParams(window.location.search));
-    const urlParams = getUrlParams(window.location.search);
-    if (FORCE_SIGN_IN_FEILD_KEY in urlParams) {
-      signIn(true);
+        console.log('gcloud auth extension is activated!');
+        console.log(getUrlParams(window.location.search));
+        const urlParams = getUrlParams(window.location.search);
+        if (FORCE_SIGN_IN_FEILD_KEY in urlParams) {
+            signIn(true);
+        }
     }
-  }
 }
 
-class AlreadySignedDialog extends Widget {
+class SignOutDialog extends Widget {
 
-  constructor() {
-      super({
-          node: AlreadySignedDialog.createFormNode()
-      });
-  }
+    constructor() {
+        super({
+            node: SignOutDialog.createFormNode()
+        });
+    }
 
-  private static createFormNode(): HTMLElement {
-      const node = document.createElement("div");
-      const authText = document.createElement("a");
+    private static createFormNode(): HTMLElement {
+        const node = document.createElement("div");
+        const authText = document.createElement("a");
+        authText.textContent = "Do you want to sign out?";
+        node.appendChild(authText);
+        return node;
+    }
+}
 
-      authText.textContent = "You're already signed in";
-      node.appendChild(authText);
-      return node;
-  }
+class SuccessDialog extends Widget {
+
+    constructor() {
+        super({
+            node: SuccessDialog.createFormNode()
+        });
+    }
+
+    private static createFormNode(): HTMLElement {
+        const node = document.createElement("div");
+        const authText = document.createElement("a");
+        authText.textContent = "You have successfully signed out";
+        node.appendChild(authText);
+        return node;
+    }
 }
 
 class GetCodeDialog extends Widget {
-  constructor() {
-    super({
-      node: GetCodeDialog.createDialogNode()
-    });
-  }
+    constructor() {
+        super({
+            node: GetCodeDialog.createDialogNode()
+        });
+    }
 
-  private static createDialogNode(): HTMLElement {
-    const node = document.createElement("div");
-    const authText = document.createElement("p");
+    private static createDialogNode(): HTMLElement {
+        const node = document.createElement("div");
+        const authText = document.createElement("p");
 
-    authText.textContent = 'Clicking "Get Code" will take you to a new page with an authentication code that you can paste here to complete the process.';
-    authText.style.marginBottom = "16px";
+        authText.textContent = 'Clicking "Get Code" will take you to a new page with an authentication code that you can paste here to complete the process.';
+        authText.style.marginBottom = "16px";
 
-    node.appendChild(authText);
-    return node;
-  }
-  getValue(): string {
-    return '';
-  }
+        node.appendChild(authText);
+        return node;
+    }
+    getValue(): string {
+        return '';
+    }
 }
 
 class SubmitCodeDialog extends Widget {
 
-  constructor() {
-      super({
-          node: SubmitCodeDialog.createFormNode()
-      });
-  }
+    constructor() {
+        super({
+            node: SubmitCodeDialog.createFormNode()
+        });
+    }
 
-  private static createFormNode(): HTMLElement {
-      const node = document.createElement("div");
-      const authText = document.createElement("p");
-      const authCodeInputText = document.createElement("input");
+    private static createFormNode(): HTMLElement {
+        const node = document.createElement("div");
+        const authText = document.createElement("p");
+        const authCodeInputText = document.createElement("input");
 
-      authText.textContent = 'Please paste your copied Google Authorization code into the form field below';
-      authCodeInputText.setAttribute("type", "text");
-      authCodeInputText.setAttribute("id", "authCodeInputText");
+        authText.textContent = 'Please paste your copied Google Authorization code into the form field below';
+        authCodeInputText.setAttribute("type", "text");
+        authCodeInputText.setAttribute("id", "authCodeInputText");
 
-      authCodeInputText.style.margin = '16px 0';
+        authCodeInputText.style.margin = '16px 0';
 
-      node.appendChild(authText);
-      node.appendChild(authCodeInputText);
-      return node;
-  }
+        node.appendChild(authText);
+        node.appendChild(authCodeInputText);
+        return node;
+    }
 
-  getValue(): string {
-    return (<HTMLInputElement>this.node.querySelector('#authCodeInputText')).value;
-  }
+    getValue(): string {
+        return ( < HTMLInputElement > this.node.querySelector('#authCodeInputText')).value;
+    }
 }
 
 function openInNewTab(url: string) {
-  var win = window.open(url, '_blank');
-  win.focus();
+    var win = window.open(url, '_blank');
+    win.focus();
 }
 
-function submitButton(options: Partial<Dialog.IButton> = {}): Readonly<Dialog.IButton> {
-  options.accept = true;
-  return Dialog.createButton(options);
+function submitButton(options: Partial < Dialog.IButton >  = {}): Readonly < Dialog.IButton > {
+    options.accept = true;
+    return Dialog.createButton(options);
 }
 
 export default gcloudAuthExt;

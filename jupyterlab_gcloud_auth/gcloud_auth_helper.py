@@ -32,6 +32,11 @@ class GcloudAuthHelper(object):
         file_path = self._generate_auth_file_path()
         return os.path.exists(file_path)
     
+    def sign_out(self, signout):        
+        if signout:
+           file_path = self._generate_auth_file_path()
+           os.remove(file_path)
+    
     def finish_authentification(self, auth_code):
         payload = {
             "code": auth_code,

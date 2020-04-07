@@ -16,7 +16,10 @@ class GcpAuthHandler(APIHandler):
     @gen.coroutine
     def post(self):
         data = json.loads(self.request.body.decode('utf-8'))
-        self.gcloud_auth_helper.finish_authentification(data["auth_code"])
+        if data.get('signout'):
+            self.gcloud_auth_helper.sign_out(data["signout"])
+        else:
+            self.gcloud_auth_helper.finish_authentification(data["auth_code"])
         return self.finish("DONE")
 
     @gen.coroutine
