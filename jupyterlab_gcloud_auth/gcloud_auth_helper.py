@@ -54,6 +54,9 @@ class GcloudAuthHelper(object):
             "type": "authorized_user"
         }
         file_path = self._generate_auth_file_path()
+        file_dir = os.path.dirname(file_path)
+        if not os.path.exists(file_dir): 
+            os.mkdir(file_dir)
         with open(file_path, "w") as fp:
             json.dump(auth_file_content, fp)
     
