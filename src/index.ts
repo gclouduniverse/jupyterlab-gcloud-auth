@@ -99,7 +99,35 @@ function signIn(forced: Boolean) {
                                     "auth_code": authCode
                                 })
                             };
-                            ServerConnection.makeRequest(fullUrl, finalizeAuthRequest, settings);
+                            ServerConnection.makeRequest(fullUrl, finalizeAuthRequest, settings).then(response => {
+                                ServerConnection.makeRequest(fullUrl, fullRequest, settings).then(response => {
+                                    response.text().then(function processUrl(jsonResult: string) {
+                                        const dataFromServer: {
+                                            [key: string]: string
+                                        } = JSON.parse(jsonResult);
+                                        const alreadySigned: Boolean = !!dataFromServer["signed_in"];
+                                        if (alreadySigned) {
+                                            const successDialog = new Dialog({
+                                                title: 'Success',
+                                                body: new SuccessSignInDialog(),
+                                                buttons: [
+                                                    Dialog.okButton()
+                                                ]
+                                            });
+                                            successDialog.launch();
+                                        } else {
+                                            const errorDialog = new Dialog({
+                                                title: 'Error',
+                                                body: new ErrorSignInDialog(),
+                                                buttons: [
+                                                    Dialog.okButton()
+                                                ]
+                                            });
+                                            errorDialog.launch();
+                                        }
+                                    })
+                                });
+                            });
                         }
                     });
                 }
@@ -131,16 +159,14 @@ function signOut() {
                 })
             };
             ServerConnection.makeRequest(fullUrl, signOutProcessing, settings).then(response => {
-                response.text().then(function processText(links: string) {
-                    const successDialog = new Dialog({
-                        title: 'Success',
-                        body: new SuccessDialog(),
-                        buttons: [
-                            Dialog.okButton()
-                        ]
-                    });
-                    successDialog.launch();
-                })
+                const successDialog = new Dialog({
+                    title: 'Success',
+                    body: new SuccessSignOutDialog(),
+                    buttons: [
+                        Dialog.okButton()
+                    ]
+                });
+                successDialog.launch();
             });
         }
     });
@@ -191,26 +217,60 @@ class SignOutDialog extends Widget {
 
     private static createFormNode(): HTMLElement {
         const node = document.createElement("div");
-        const authText = document.createElement("a");
-        authText.textContent = "Do you want to sign out?";
-        node.appendChild(authText);
+        const signOutText = document.createElement("p");
+        signOutText.textContent = "Do you want to sign out?";
+        node.appendChild(signOutText);
         return node;
     }
 }
 
-class SuccessDialog extends Widget {
+class SuccessSignInDialog extends Widget {
 
     constructor() {
         super({
-            node: SuccessDialog.createFormNode()
+            node: SuccessSignInDialog.createFormNode()
         });
     }
 
     private static createFormNode(): HTMLElement {
         const node = document.createElement("div");
-        const authText = document.createElement("a");
-        authText.textContent = "You have successfully signed out";
-        node.appendChild(authText);
+        const successSignInText = document.createElement("p");
+        successSignInText.textContent = "You have successfully signed in";
+        node.appendChild(successSignInText);
+        return node;
+    }
+}
+
+class ErrorSignInDialog extends Widget {
+
+    constructor() {
+        super({
+            node: ErrorSignInDialog.createFormNode()
+        });
+    }
+
+    private static createFormNode(): HTMLElement {
+        const node = document.createElement("div");
+        const errorSignInText = document.createElement("p");
+        errorSignInText.textContent = "You are not signed in";
+        node.appendChild(errorSignInText);
+        return node;
+    }
+}
+
+class SuccessSignOutDialog extends Widget {
+
+    constructor() {
+        super({
+            node: SuccessSignOutDialog.createFormNode()
+        });
+    }
+
+    private static createFormNode(): HTMLElement {
+        const node = document.createElement("div");
+        const successSignOutText = document.createElement("p");
+        successSignOutText.textContent = "You have successfully signed out";
+        node.appendChild(successSignOutText);
         return node;
     }
 }
