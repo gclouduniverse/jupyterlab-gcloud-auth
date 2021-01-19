@@ -15,11 +15,13 @@ class GcpAuthHandler(APIHandler):
 
     @gen.coroutine
     def post(self):
-        data = json.loads(self.request.body.decode('utf-8'))
-        if data.get('signout'):
+        data = json.loads(self.request.body.decode("utf-8"))
+        if data.get("signout"):
             self.gcloud_auth_helper.sign_out(data["signout"])
+        elif data.get("signin"):
+            self.gcloud_auth_helper.create_login_request()
         else:
-            self.gcloud_auth_helper.finish_authentification(data["auth_code"])
+            self.gcloud_auth_helper.finish_authentication(data["auth_code"])
         return self.finish("DONE")
 
     @gen.coroutine
@@ -33,13 +35,13 @@ class GcpAuthHandler(APIHandler):
 
 def _jupyter_server_extension_paths():
     return [{
-        'module': 'jupyterlab_gcloud_auth'
+        "module": "jupyterlab_gcloud_auth"
     }]
 
 
 def load_jupyter_server_extension(nb_server_app):
     web_app = nb_server_app.web_app
-    base_url = web_app.settings['base_url']
-    endpoint = url_path_join(base_url, 'gcloud-auth')
+    base_url = web_app.settings["base_url"]
+    endpoint = url_path_join(base_url, "gcloud-auth")
     handlers = [(endpoint, GcpAuthHandler)]
-    web_app.add_handlers('.*$', handlers)
+    web_app.add_handlers(".*$", handlers)
