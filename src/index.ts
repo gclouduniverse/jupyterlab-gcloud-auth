@@ -52,85 +52,93 @@ function signIn(forced: Boolean) {
     const fullRequest = {
         method: 'GET'
     };
-    ServerConnection.makeRequest(fullUrl, fullRequest, settings).then(response => {
-        response.text().then(function processUrl(jsonResult: string) {
-            const dataFromServer: {
-                [key: string]: string
-            } = JSON.parse(jsonResult);
-            const authUrl: string = dataFromServer["auth_url"];
-            const alreadySigned: Boolean = !!dataFromServer["signed_in"];
-            if (alreadySigned) {
-                if (!forced) {
-                    signOut();
+    const createLoginRequest = {
+      method: 'POST',
+      body: JSON.stringify({
+          "signin": true
+      })
+    };
+    ServerConnection.makeRequest(fullUrl, createLoginRequest, settings).then(response => {
+        ServerConnection.makeRequest(fullUrl, fullRequest, settings).then(response => {
+            response.text().then(function processUrl(jsonResult: string) {
+                const dataFromServer: {
+                    [key: string]: string
+                } = JSON.parse(jsonResult);
+                const authUrl: string = dataFromServer["auth_url"];
+                const alreadySigned: Boolean = !!dataFromServer["signed_in"];
+                if (alreadySigned) {
+                    if (!forced) {
+                        signOut();
+                    }
+                    return;
                 }
-                return;
-            }
-            const getCodeDialog = new Dialog({
-                title: "Please authorize your GCP credentials",
-                body: new GetCodeDialog(),
-                buttons: [
-                    Dialog.cancelButton(),
-                    submitButton({
-                        label: "Get Code"
-                    }),
-                ]
-            });
-            const getCodeResult = getCodeDialog.launch();
-            getCodeResult.then(result => {
-                if (typeof result.value !== 'undefined' && result.value !== null) {
-                    openInNewTab(authUrl);
-                    const submitCodeDialog = new Dialog({
-                        title: "Complete GCP Authorization",
-                        body: new SubmitCodeDialog(),
-                        buttons: [
-                            Dialog.cancelButton(),
-                            submitButton({
-                                label: "Authorize"
-                            })
-                        ]
-                    });
-                    const authResult = submitCodeDialog.launch();
-                    authResult.then(result => {
-                        if (typeof result.value !== 'undefined' && result.value) {
-                            const authCode = result.value;
-                            const finalizeAuthRequest = {
-                                method: "POST",
-                                body: JSON.stringify({
-                                    "auth_code": authCode
+                const getCodeDialog = new Dialog({
+                    title: "Please authorize your GCP credentials",
+                    body: new GetCodeDialog(),
+                    buttons: [
+                        Dialog.cancelButton(),
+                        submitButton({
+                            label: "Get Code"
+                        }),
+                    ]
+                });
+                const getCodeResult = getCodeDialog.launch();
+                getCodeResult.then(result => {
+                    if (typeof result.value !== 'undefined' && result.value !== null) {
+                        openInNewTab(authUrl);
+                        const submitCodeDialog = new Dialog({
+                            title: "Complete GCP Authorization",
+                            body: new SubmitCodeDialog(),
+                            buttons: [
+                                Dialog.cancelButton(),
+                                submitButton({
+                                    label: "Authorize"
                                 })
-                            };
-                            ServerConnection.makeRequest(fullUrl, finalizeAuthRequest, settings).then(response => {
-                                ServerConnection.makeRequest(fullUrl, fullRequest, settings).then(response => {
-                                    response.text().then(function processUrl(jsonResult: string) {
-                                        const dataFromServer: {
-                                            [key: string]: string
-                                        } = JSON.parse(jsonResult);
-                                        const alreadySigned: Boolean = !!dataFromServer["signed_in"];
-                                        if (alreadySigned) {
-                                            const successDialog = new Dialog({
-                                                title: 'Success',
-                                                body: new SuccessSignInDialog(),
-                                                buttons: [
-                                                    Dialog.okButton()
-                                                ]
-                                            });
-                                            successDialog.launch();
-                                        } else {
-                                            const errorDialog = new Dialog({
-                                                title: 'Error',
-                                                body: new ErrorSignInDialog(),
-                                                buttons: [
-                                                    Dialog.okButton()
-                                                ]
-                                            });
-                                            errorDialog.launch();
-                                        }
+                            ]
+                        });
+                        const authResult = submitCodeDialog.launch();
+                        authResult.then(result => {
+                            if (typeof result.value !== 'undefined' && result.value) {
+                                const authCode = result.value;
+                                const finalizeAuthRequest = {
+                                    method: "POST",
+                                    body: JSON.stringify({
+                                        "auth_code": authCode
                                     })
+                                };
+                                ServerConnection.makeRequest(fullUrl, finalizeAuthRequest, settings).then(response => {
+                                    ServerConnection.makeRequest(fullUrl, fullRequest, settings).then(response => {
+                                        response.text().then(function processUrl(jsonResult: string) {
+                                            const dataFromServer: {
+                                                [key: string]: string
+                                            } = JSON.parse(jsonResult);
+                                            const alreadySigned: Boolean = !!dataFromServer["signed_in"];
+                                            if (alreadySigned) {
+                                                const successDialog = new Dialog({
+                                                    title: 'Success',
+                                                    body: new SuccessSignInDialog(),
+                                                    buttons: [
+                                                        Dialog.okButton()
+                                                    ]
+                                                });
+                                                successDialog.launch();
+                                            } else {
+                                                const errorDialog = new Dialog({
+                                                    title: 'Error',
+                                                    body: new ErrorSignInDialog(),
+                                                    buttons: [
+                                                        Dialog.okButton()
+                                                    ]
+                                                });
+                                                errorDialog.launch();
+                                            }
+                                        })
+                                    });
                                 });
-                            });
-                        }
-                    });
-                }
+                            }
+                        });
+                    }
+                });
             });
         });
     });

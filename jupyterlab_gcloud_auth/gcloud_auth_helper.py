@@ -1,64 +1,67 @@
 import json
-import requests
+import pexpect
+import sys
 
 import os.path
 
 _DEFAULT_CREDENTIALS_FILE_PATH = "~/.config/gcloud/application_default_credentials.json"
 
-_OAUTH_TOKEN_BASE_URL = "https://www.googleapis.com/oauth2/v4/token"
+_GCLOUD_LOGIN_COMMAND = ("gcloud auth login "
+                         "--update-adc --quiet --no-launch-browser")
 
-# Both following value are copy-pasted from the google-auth package from:
-# /usr/lib/google-cloud-sdk/lib/googlecloudsdk/api_lib/auth/util.py
-_GCLOUD_CLIENT_ID = "764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com"
-_GCLOUD_CLIENT_SECRET = "d-FL95Q19q7MQmFpd7hHD0Ty"
-
-_AUTH_URL = ("https://accounts.google.com/o/oauth2/v2/auth?"
-            "client_id={client_id}&"
-            "response_type=code&"
-            "scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+"
-            "https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform+"
-            "https%3A%2F%2Fwww.googleapis.com%2Fauth%2Faccounts.reauth&"
-            "access_type=offline&"
-            "redirect_uri=urn:ietf:wg:oauth:2.0:oob".format(
-                client_id=_GCLOUD_CLIENT_ID))
+_GCLOUD_LOGOFF_COMMAND = "gcloud auth revoke --quiet"
 
 
 class GcloudAuthHelper(object):
+    """Singleton helper for coordinating gcloud auth commands."""
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(GcloudAuthHelper, cls).__new__(cls)
+            cls._instance.active_request = None
+            cls._instance.active_url = None
+        return cls._instance
+
+    def create_login_request(self):
+        self._reset_active_request()
+        try:
+            self.active_request = pexpect.spawn(_GCLOUD_LOGIN_COMMAND,
+                                                encoding="utf-8",
+                                                logfile=sys.stdout,
+                                                timeout=600)
+            self.active_request.expect("https://accounts.google.com/.+\r\n")
+            self.active_url = self.active_request.match[0]
+        except Exception as e:
+            print("Failed to start login: {}".format(str(self.active_request)))
 
     def get_link(self):
-        return _AUTH_URL
+        return self.active_url
 
     def signed_in(self):
         file_path = self._generate_auth_file_path()
         return os.path.exists(file_path)
-    
-    def sign_out(self, signout):        
+
+    def sign_out(self, signout):
         if signout:
-           file_path = self._generate_auth_file_path()
-           os.remove(file_path)
-    
-    def finish_authentification(self, auth_code):
-        payload = {
-            "code": auth_code,
-            "client_id": _GCLOUD_CLIENT_ID,
-            "client_secret": _GCLOUD_CLIENT_SECRET,
-            "redirect_uri": "urn:ietf:wg:oauth:2.0:oob", 
-            "grant_type": "authorization_code"
-        }
-        result_raw = requests.post(_OAUTH_TOKEN_BASE_URL, data=payload)
-        result_dict = json.loads(result_raw.text) 
-        auth_file_content = {
-            "client_id": _GCLOUD_CLIENT_ID,
-            "client_secret": _GCLOUD_CLIENT_SECRET,
-            "refresh_token": result_dict["refresh_token"],
-            "type": "authorized_user"
-        }
-        file_path = self._generate_auth_file_path()
-        file_dir = os.path.dirname(file_path)
-        if not os.path.exists(file_dir): 
-            os.mkdir(file_dir)
-        with open(file_path, "w") as fp:
-            json.dump(auth_file_content, fp)
-    
+            self._reset_active_request()
+            pexpect.run(_GCLOUD_LOGOFF_COMMAND, logfile=sys.stdout,
+                        encoding="utf-8")
+            # ADC file still remains, even after revoke
+            file_path = self._generate_auth_file_path()
+            os.remove(file_path)
+
+    def finish_authentication(self, auth_code):
+        try:
+            self.active_request.sendline(auth_code)
+            self.active_request.expect("logged in", timeout=10)
+        except Exception as e:
+            print("Failed to complete login: {}".format(str(self.active_request)))
+
     def _generate_auth_file_path(self):
         return os.path.expanduser(_DEFAULT_CREDENTIALS_FILE_PATH)
+
+    def _reset_active_request(self):
+        if self.active_request:
+            self.active_url = None
+            self.active_request.terminate(force=True)
