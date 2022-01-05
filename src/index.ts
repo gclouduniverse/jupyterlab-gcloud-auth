@@ -22,7 +22,7 @@ from '@jupyterlab/services';
 import {
     Widget
 }
-from "@phosphor/widgets";
+from "@lumino/widgets";
 import {
     Dialog
 }
