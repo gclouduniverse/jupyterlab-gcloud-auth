@@ -22,7 +22,7 @@ from '@jupyterlab/services';
 import {
     Widget
 }
-from "@phosphor/widgets";
+from "@lumino/widgets";
 import {
     Dialog
 }
@@ -336,7 +336,7 @@ class SubmitCodeDialog extends Widget {
 
 function openInNewTab(url: string) {
     var win = window.open(url, '_blank');
-    win.focus();
+    win!.focus();
 }
 
 function submitButton(options: Partial < Dialog.IButton >  = {}): Readonly < Dialog.IButton > {
